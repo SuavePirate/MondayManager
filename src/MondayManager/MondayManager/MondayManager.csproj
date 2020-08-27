@@ -1,11 +1,14 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="GraphQL.Client" Version="3.1.5" />
+    <PackageReference Include="GraphQL.Client.Serializer.Newtonsoft" Version="3.1.5" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.0.3" />
+    <PackageReference Include="ServiceResult" Version="1.0.1" />
     <PackageReference Include="Voicify.Sdk.Webhooks" Version="2.2.0" />
   </ItemGroup>
 

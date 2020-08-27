@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using GraphQL.Client.Http;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -10,7 +11,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using MondayManager.Providers;
+using MondayManager.Services;
 
+using GraphQL.Client.Serializer.Newtonsoft;
 namespace MondayManager
 {
     public class Startup
@@ -27,6 +31,11 @@ namespace MondayManager
         {
             services.AddMvc().AddNewtonsoftJson();
             services.AddControllers();
+
+            services.AddScoped<IMondayDataProvider, MondayDataProvider>();
+            services.AddScoped<IMondayResponseService, MondayResponseService>();
+            services.AddScoped((s) => new GraphQLHttpClient("https://api.monday.com/v2", new NewtonsoftJsonSerializer()));
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
