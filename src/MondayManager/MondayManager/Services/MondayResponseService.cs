@@ -72,6 +72,11 @@ namespace MondayManager.Services
         {
             try
             {
+                // so basically this endpoint takes the parameters of a graphql query, and then variables with traversal values just like the remote content fulfillment integration in voicify
+                // ex:
+                // "query": "{boards { id, name }}"
+                // "{first_board_name}": "boards[0]->name"
+                // then the conversation item can have something like "Your first board is {first_board_name}", and a webhook with those params and the response output would be "Your first board is blah blah"
 
                 // TODO: take the webhook parameter as a graphql query string, and then replace variables in the response
                 return new GeneralFulfillmentResponse
