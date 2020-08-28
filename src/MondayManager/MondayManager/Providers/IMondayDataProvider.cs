@@ -10,5 +10,6 @@ namespace MondayManager.Providers
     public interface IMondayDataProvider
     {
         Task<Result<Board[]>> GetAllBoards(string accessToken);
+        Task<Result<string>> MakeRawQueryRequest(string accessToken, string query);
     }
 }

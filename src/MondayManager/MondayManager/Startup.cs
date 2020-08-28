@@ -15,6 +15,9 @@ using MondayManager.Providers;
 using MondayManager.Services;
 
 using GraphQL.Client.Serializer.Newtonsoft;
+using Voicify.Sdk.Webhooks.Services.Definitions;
+using Voicify.Sdk.Webhooks.Services;
+
 namespace MondayManager
 {
     public class Startup
@@ -34,6 +37,7 @@ namespace MondayManager
 
             services.AddScoped<IMondayDataProvider, MondayDataProvider>();
             services.AddScoped<IMondayResponseService, MondayResponseService>();
+            services.AddScoped<IDataTraversalService, DataTraversalService>();
             services.AddScoped((s) => new GraphQLHttpClient("https://api.monday.com/v2", new NewtonsoftJsonSerializer()));
 
         }

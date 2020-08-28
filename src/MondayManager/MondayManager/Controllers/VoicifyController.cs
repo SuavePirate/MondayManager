@@ -50,5 +50,12 @@ namespace MondayManager.Controllers
             var result = await _mondayResponseService.GetBoardCount(request);
             return Ok(result);
         }
+
+        [HttpPost("HandleGenericQuery")]
+        public async Task<IActionResult> HandleGenericQuery([FromBody]GeneralWebhookFulfillmentRequest request)
+        {
+            var result = await _mondayResponseService.HandleGenericMondayRequest(request);
+            return Ok(result);
+        }
     }
 }
