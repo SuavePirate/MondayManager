@@ -228,7 +228,7 @@ namespace MondayManager.Services
         {
             return template.Replace(ResponseVariables.BoardItemCount, (board?.Items?.Length ?? 0).ToString())
                             .Replace(ResponseVariables.BoardName, board.Name)
-                            .Replace(ResponseVariables.BoardGroupCount, (board.Groups?.Length ?? 0).ToString())
+                            .Replace(ResponseVariables.BoardGroupCount, (board.Groups?.Length ?? 0).ToString());
         }
 
 
@@ -269,18 +269,7 @@ namespace MondayManager.Services
                 // "{first_board_name}": "boards[0]->name"
                 // then the conversation item can have something like "Your first board is {first_board_name}", and a webhook with those params and the response output would be "Your first board is blah blah"
                 if (string.IsNullOrEmpty(request.OriginalRequest.AccessToken))
-                    return new GeneralFulfillmentResponse
-                    {
-                        Data = new ContentFulfillmentWebhookData
-                        {
-                            Content = "You need to link your Monday account before requesting data.",
-                            AccountLinking = new AccountLinkingModel
-                            {
-                                GoogleAccountLinkingPrompt = "To ask about your monday account",
-                                AlexaAccountLinkingPrompt = "In order to ask about your monday account, you need to link your Amazon and Monday accounts. I've sent a card to your Alexa app to get started"
-                            }
-                        }
-                    };
+                    return Unauthorized();
                 if (request.Parameters is null)
                     return Error();
 

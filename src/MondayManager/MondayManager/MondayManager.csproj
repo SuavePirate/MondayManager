@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Alexa.NET" Version="1.14.0" />
     <PackageReference Include="GraphQL.Client" Version="3.1.5" />
     <PackageReference Include="GraphQL.Client.Serializer.Newtonsoft" Version="3.1.5" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.0.3" />

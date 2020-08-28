@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Alexa.NET.Response;
+using Microsoft.AspNetCore.Mvc;
 using MondayManager.Services;
 using System;
 using System.Collections.Generic;
@@ -21,28 +22,35 @@ namespace MondayManager.Controllers
             _mondayResponseService = mondayResponseService;
         }
 
-        //[HttpPost("HandleVoicifyWebhook")]
-        //public async Task<IActionResult> HandleVoicifyWebhook([FromBody]GeneralWebhookFulfillmentRequest request)
-        //{
-        //    var accessToken = request.OriginalRequest.AccessToken;
+        [HttpPost("HandleInitialSignIn")]
+        public IActionResult HandleInitialSignIn([FromBody]GeneralWebhookFulfillmentRequest request)
+        {
+            if (!string.IsNullOrEmpty(request.OriginalRequest.AccessToken))
+                return Ok(); // don't need to sign in
 
-        //    // temp: get the current user
-        //    var client = new HttpClient();
-        //    client.DefaultRequestHeaders.Add("Authorization", accessToken);
-        //    client.DefaultRequestHeaders.Add("ContentType", "application/json");
-        //    var response = await client.PostAsync("https://api.monday.com/v2", new StringContent("{\"query\":\"{ me{ name } }\"}", Encoding.UTF8, "application/json"));
-        //    var outputJson = await response.Content.ReadAsStringAsync();
-
-
-
-        //    return Ok(new GeneralFulfillmentResponse
-        //    {
-        //        Data = new ContentFulfillmentWebhookData
-        //        {
-        //            Content = $"You are trying to request data as {outputJson}"
-        //        }
-        //    });
-        //}
+            // use payload override for alexa
+            if (request.OriginalRequest?.Assistant?.ToLower() == "alexa")
+                return Ok(new GeneralFulfillmentResponse
+                {
+                    Data = new ContentFulfillmentWebhookData
+                    {
+                        PayloadOverride = Alexa.NET.ResponseBuilder.TellWithLinkAccountCard("In order to let you interact with your monday.com resources, you need to link your Monday account. We've sent a card to your alexa mobile app to get started.")
+                    }
+                });
+            else
+                return Ok(new GeneralFulfillmentResponse
+                {
+                    Data = new ContentFulfillmentWebhookData
+                    {
+                        Content = "You need to link your Monday account before requesting data.",
+                        AccountLinking = new AccountLinkingModel
+                        {
+                            GoogleAccountLinkingPrompt = "To ask about your monday account",
+                            AlexaAccountLinkingPrompt = "In order to ask about your monday account, you need to link your Amazon and Monday accounts. I've sent a card to your Alexa app to get started"
+                        }
+                    }
+                });
+        }
 
         [HttpPost("HandleBoards")]
         public async Task<IActionResult> GetBoardsResponse([FromBody]GeneralWebhookFulfillmentRequest request)
