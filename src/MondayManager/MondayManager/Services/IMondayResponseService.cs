@@ -10,7 +10,9 @@ namespace MondayManager.Services
 {
     public interface IMondayResponseService
     {
-        Task<GeneralFulfillmentResponse> GetBoardCount(GeneralWebhookFulfillmentRequest request);
+        Task<GeneralFulfillmentResponse> GetBoards(GeneralWebhookFulfillmentRequest request);
+        Task<GeneralFulfillmentResponse> GetCurrentBoard(GeneralWebhookFulfillmentRequest request);
+        Task<GeneralFulfillmentResponse> GetItems(GeneralWebhookFulfillmentRequest request);
         Task<GeneralFulfillmentResponse> HandleGenericMondayRequest(GeneralWebhookFulfillmentRequest request);
     }
 }

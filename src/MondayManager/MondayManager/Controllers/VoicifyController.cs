@@ -44,10 +44,22 @@ namespace MondayManager.Controllers
         //    });
         //}
 
-        [HttpPost("GetBoardCount")]
-        public async Task<IActionResult> GetBoardCountResponse([FromBody]GeneralWebhookFulfillmentRequest request)
+        [HttpPost("HandleBoards")]
+        public async Task<IActionResult> GetBoardsResponse([FromBody]GeneralWebhookFulfillmentRequest request)
         {
-            var result = await _mondayResponseService.GetBoardCount(request);
+            var result = await _mondayResponseService.GetBoards(request);
+            return Ok(result);
+        }
+        [HttpPost("HandleCurrentBoard")]
+        public async Task<IActionResult> GetCurrentBoard([FromBody]GeneralWebhookFulfillmentRequest request)
+        {
+            var result = await _mondayResponseService.GetCurrentBoard(request);
+            return Ok(result);
+        }
+        [HttpPost("HandleItems")]
+        public async Task<IActionResult> GetItemsResponse([FromBody]GeneralWebhookFulfillmentRequest request)
+        {
+            var result = await _mondayResponseService.GetItems(request);
             return Ok(result);
         }
 

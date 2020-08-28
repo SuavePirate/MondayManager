@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using MondayManager.Models.Constants;
+using MondayManager.Models.Monday;
 using MondayManager.Providers;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using ServiceResult;
 using Voicify.Sdk.Core.Models.Model;
@@ -25,7 +28,115 @@ namespace MondayManager.Services
         }
 
 
-        public async Task<GeneralFulfillmentResponse> GetBoardCount(GeneralWebhookFulfillmentRequest request)
+        public async Task<GeneralFulfillmentResponse> GetBoards(GeneralWebhookFulfillmentRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(request.OriginalRequest.AccessToken))
+                    return new GeneralFulfillmentResponse
+                    {
+                        Data = new ContentFulfillmentWebhookData
+                        {
+                            Content = "You need to link your Monday account before requesting data.",
+                            AccountLinking = new AccountLinkingModel
+                            {
+                                GoogleAccountLinkingPrompt = "To ask about your monday account",
+                                AlexaAccountLinkingPrompt = "In order to ask about your monday account, you need to link your Amazon and Monday accounts. I've sent a card to your Alexa app to get started"
+                            }
+                        }
+                    };
+                var boards = await _mondayDataProvider.GetAllBoards(request.OriginalRequest.AccessToken);
+
+                if (boards.ResultType != ResultType.Ok)
+                    return new GeneralFulfillmentResponse
+                    {
+                        Data = new ContentFulfillmentWebhookData
+                        {
+                            Content = $"Something went wrong getting your boards: {boards.Errors.FirstOrDefault()}"
+                        }
+                    };
+
+                return new GeneralFulfillmentResponse
+                {
+                    Data = new ContentFulfillmentWebhookData
+                    {
+                        Content = request.Response.Content.Replace(ResponseVariables.BoardCount, boards.Data.Length.ToString()),
+                        AdditionalSessionAttributes = new Dictionary<string, object>
+                        {
+                            { SessionAttributes.BoardsSessionAttribute, boards.Data },
+                            { SessionAttributes.CurrentBoardSessionAttribute, boards.Data.FirstOrDefault() }
+                        }
+                    }
+                };
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                return Error();
+            }
+        }
+        public async Task<GeneralFulfillmentResponse> GetCurrentBoard(GeneralWebhookFulfillmentRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(request.OriginalRequest.AccessToken))
+                    return new GeneralFulfillmentResponse
+                    {
+                        Data = new ContentFulfillmentWebhookData
+                        {
+                            Content = "You need to link your Monday account before requesting data.",
+                            AccountLinking = new AccountLinkingModel
+                            {
+                                GoogleAccountLinkingPrompt = "To ask about your monday account",
+                                AlexaAccountLinkingPrompt = "In order to ask about your monday account, you need to link your Amazon and Monday accounts. I've sent a card to your Alexa app to get started"
+                            }
+                        }
+                    };
+
+                Board currentBoard = null;
+                request.OriginalRequest.SessionAttributes.TryGetValue(SessionAttributes.CurrentBoardSessionAttribute, out var currentBoardObj);
+                // see if we have the current one
+                if (currentBoardObj != null)
+                    currentBoard = JsonConvert.DeserializeObject<Board>(JsonConvert.SerializeObject(currentBoardObj));
+                else
+                {
+                    // if not, go load them
+                    var boardsResult = await _mondayDataProvider.GetAllBoards(request.OriginalRequest.AccessToken);
+                    if (boardsResult?.Data?.FirstOrDefault() == null)
+                        return Error();
+                    currentBoard = boardsResult.Data.FirstOrDefault();
+                }
+
+
+
+                if (currentBoard is null)
+                    return Error();
+
+                return new GeneralFulfillmentResponse
+                {
+                    Data = new ContentFulfillmentWebhookData
+                    {
+                        Content = request.Response.Content
+                            .Replace(ResponseVariables.BoardItemCount, (currentBoard?.Items?.Length ?? 0).ToString())
+                            .Replace(ResponseVariables.BoardName, currentBoard.Name)
+                            .Replace(ResponseVariables.BoardGroupCount, (currentBoard.Groups?.Length ?? 0).ToString()),
+                        AdditionalSessionAttributes = new Dictionary<string, object>
+                        {
+                            { SessionAttributes.CurrentBoardSessionAttribute, currentBoard }
+                        }
+                    }
+                };
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                return Error();
+            }
+        }
+
+        public async Task<GeneralFulfillmentResponse> GetItems(GeneralWebhookFulfillmentRequest request)
         {
             try
             {
@@ -69,9 +180,10 @@ namespace MondayManager.Services
             }
         }
 
+
         private GeneralFulfillmentResponse Error()
         {
-            return  new GeneralFulfillmentResponse
+            return new GeneralFulfillmentResponse
             {
                 Data = new ContentFulfillmentWebhookData
                 {
@@ -101,15 +213,15 @@ namespace MondayManager.Services
                                 AlexaAccountLinkingPrompt = "In order to ask about your monday account, you need to link your Amazon and Monday accounts. I've sent a card to your Alexa app to get started"
                             }
                         }
-                    }; 
-                if (request.Parameters is null) 
+                    };
+                if (request.Parameters is null)
                     return Error();
 
                 request.Parameters.TryGetValue("query", out var query);
                 if (string.IsNullOrEmpty(query))
                     return Error();
 
-                var tokens = request.Parameters?.Where(k => k.Key.Trim().StartsWith("{")).Select(k => new KeyValuePair<string,string>(k.Key, k.Value));
+                var tokens = request.Parameters?.Where(k => k.Key.Trim().StartsWith("{")).Select(k => new KeyValuePair<string, string>(k.Key, k.Value));
 
                 var response = await _mondayDataProvider.MakeRawQueryRequest(request.OriginalRequest.AccessToken, query);
                 if (response.ResultType != ResultType.Ok)
@@ -118,7 +230,7 @@ namespace MondayManager.Services
                 var jObject = JObject.Parse(response.Data);
                 var evaluatedTokens = tokens.Select(t => new KeyValuePair<string, string>(t.Key, _dataTraversalService.Traverse(jObject, t.Value)));
                 var responseContent = request.Response.Content;
-                foreach(var token in evaluatedTokens)
+                foreach (var token in evaluatedTokens)
                 {
                     responseContent = responseContent.Replace(token.Key, token.Value);
                 }
