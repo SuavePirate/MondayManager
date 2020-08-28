@@ -56,6 +56,18 @@ namespace MondayManager.Controllers
             var result = await _mondayResponseService.GetCurrentBoard(request);
             return Ok(result);
         }
+        [HttpPost("HandleNextBoard")]
+        public async Task<IActionResult> GetNextBoard([FromBody]GeneralWebhookFulfillmentRequest request)
+        {
+            var result = await _mondayResponseService.GetNextBoard(request);
+            return Ok(result);
+        }
+        [HttpPost("HandlePreviousBoard")]
+        public async Task<IActionResult> GetPreviousBoard([FromBody]GeneralWebhookFulfillmentRequest request)
+        {
+            var result = await _mondayResponseService.GetPreviousBoard(request);
+            return Ok(result);
+        }
         [HttpPost("HandleItems")]
         public async Task<IActionResult> GetItemsResponse([FromBody]GeneralWebhookFulfillmentRequest request)
         {

@@ -32,19 +32,10 @@ namespace MondayManager.Services
         {
             try
             {
+
                 if (string.IsNullOrEmpty(request.OriginalRequest.AccessToken))
-                    return new GeneralFulfillmentResponse
-                    {
-                        Data = new ContentFulfillmentWebhookData
-                        {
-                            Content = "You need to link your Monday account before requesting data.",
-                            AccountLinking = new AccountLinkingModel
-                            {
-                                GoogleAccountLinkingPrompt = "To ask about your monday account",
-                                AlexaAccountLinkingPrompt = "In order to ask about your monday account, you need to link your Amazon and Monday accounts. I've sent a card to your Alexa app to get started"
-                            }
-                        }
-                    };
+                    return Unauthorized();
+
                 var boards = await _mondayDataProvider.GetAllBoards(request.OriginalRequest.AccessToken);
 
                 if (boards.ResultType != ResultType.Ok)
@@ -80,47 +71,99 @@ namespace MondayManager.Services
         {
             try
             {
+
                 if (string.IsNullOrEmpty(request.OriginalRequest.AccessToken))
-                    return new GeneralFulfillmentResponse
-                    {
-                        Data = new ContentFulfillmentWebhookData
-                        {
-                            Content = "You need to link your Monday account before requesting data.",
-                            AccountLinking = new AccountLinkingModel
-                            {
-                                GoogleAccountLinkingPrompt = "To ask about your monday account",
-                                AlexaAccountLinkingPrompt = "In order to ask about your monday account, you need to link your Amazon and Monday accounts. I've sent a card to your Alexa app to get started"
-                            }
-                        }
-                    };
+                    return Unauthorized();
 
-                Board currentBoard = null;
-                request.OriginalRequest.SessionAttributes.TryGetValue(SessionAttributes.CurrentBoardSessionAttribute, out var currentBoardObj);
-                // see if we have the current one
-                if (currentBoardObj != null)
-                    currentBoard = JsonConvert.DeserializeObject<Board>(JsonConvert.SerializeObject(currentBoardObj));
-                else
-                {
-                    // if not, go load them
-                    var boardsResult = await _mondayDataProvider.GetAllBoards(request.OriginalRequest.AccessToken);
-                    if (boardsResult?.Data?.FirstOrDefault() == null)
-                        return Error();
-                    currentBoard = boardsResult.Data.FirstOrDefault();
-                }
-
-
-
-                if (currentBoard is null)
+                var currentBoard = await GetCurrentBoardFromRequest(request);
+                if (currentBoard == null)
                     return Error();
 
                 return new GeneralFulfillmentResponse
                 {
                     Data = new ContentFulfillmentWebhookData
                     {
-                        Content = request.Response.Content
-                            .Replace(ResponseVariables.BoardItemCount, (currentBoard?.Items?.Length ?? 0).ToString())
-                            .Replace(ResponseVariables.BoardName, currentBoard.Name)
-                            .Replace(ResponseVariables.BoardGroupCount, (currentBoard.Groups?.Length ?? 0).ToString()),
+                        Content = BuildBoardResponse(request.Response.Content, currentBoard),
+                        AdditionalSessionAttributes = new Dictionary<string, object>
+                        {
+                            { SessionAttributes.CurrentBoardSessionAttribute, currentBoard }
+                        }
+                    }
+                };
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                return Error();
+            }
+        }
+
+        public async Task<GeneralFulfillmentResponse> GetNextBoard(GeneralWebhookFulfillmentRequest request)
+        {
+            try
+            {
+
+                if (string.IsNullOrEmpty(request.OriginalRequest.AccessToken))
+                    return Unauthorized();
+
+                var boards = await GetBoardsFromRequest(request);
+                if (boards == null)
+                    return Error();
+
+                var currentBoard = await GetCurrentBoardFromRequest(request);
+                if (currentBoard == null)
+                    return Error();
+
+                var currentIndex = Array.FindIndex(boards, b => b.Id == currentBoard.Id);
+                if (currentIndex < boards.Length - 1)
+                    currentBoard = boards[currentIndex + 1];
+
+                return new GeneralFulfillmentResponse
+                {
+                    Data = new ContentFulfillmentWebhookData
+                    {
+                        Content = BuildBoardResponse(request.Response.Content, currentBoard),
+                        AdditionalSessionAttributes = new Dictionary<string, object>
+                        {
+                            { SessionAttributes.CurrentBoardSessionAttribute, currentBoard }
+                        }
+                    }
+                };
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                return Error();
+            }
+        }
+
+        public async Task<GeneralFulfillmentResponse> GetPreviousBoard(GeneralWebhookFulfillmentRequest request)
+        {
+            try
+            {
+
+                if (string.IsNullOrEmpty(request.OriginalRequest.AccessToken))
+                    return Unauthorized();
+
+                var boards = await GetBoardsFromRequest(request);
+                if (boards == null)
+                    return Error();
+
+                var currentBoard = await GetCurrentBoardFromRequest(request);
+                if (currentBoard == null)
+                    return Error();
+
+                var currentIndex = Array.FindIndex(boards, b => b.Id == currentBoard.Id);
+                if (currentIndex > 0)
+                    currentBoard = boards[currentIndex - 1];
+
+                return new GeneralFulfillmentResponse
+                {
+                    Data = new ContentFulfillmentWebhookData
+                    {
+                        Content = BuildBoardResponse(request.Response.Content, currentBoard),
                         AdditionalSessionAttributes = new Dictionary<string, object>
                         {
                             { SessionAttributes.CurrentBoardSessionAttribute, currentBoard }
@@ -141,36 +184,17 @@ namespace MondayManager.Services
             try
             {
                 if (string.IsNullOrEmpty(request.OriginalRequest.AccessToken))
+                    return Unauthorized();
+
+                // TODO: item stuff
                     return new GeneralFulfillmentResponse
                     {
                         Data = new ContentFulfillmentWebhookData
                         {
-                            Content = "You need to link your Monday account before requesting data.",
-                            AccountLinking = new AccountLinkingModel
-                            {
-                                GoogleAccountLinkingPrompt = "To ask about your monday account",
-                                AlexaAccountLinkingPrompt = "In order to ask about your monday account, you need to link your Amazon and Monday accounts. I've sent a card to your Alexa app to get started"
-                            }
-                        }
-                    };
-                var boards = await _mondayDataProvider.GetAllBoards(request.OriginalRequest.AccessToken);
-
-                if (boards.ResultType != ResultType.Ok)
-                    return new GeneralFulfillmentResponse
-                    {
-                        Data = new ContentFulfillmentWebhookData
-                        {
-                            Content = $"Something went wrong getting your boards: {boards.Errors.FirstOrDefault()}"
+                            Content = $"Not implemented"
                         }
                     };
 
-                return new GeneralFulfillmentResponse
-                {
-                    Data = new ContentFulfillmentWebhookData
-                    {
-                        Content = request.Response.Content.Replace("{BOARD_COUNT}", boards.Data.Length.ToString())
-                    }
-                };
 
             }
             catch (Exception ex)
@@ -178,6 +202,33 @@ namespace MondayManager.Services
                 Console.WriteLine(ex);
                 return Error();
             }
+        }
+
+        private async Task<Board[]> GetBoardsFromRequest(GeneralWebhookFulfillmentRequest request)
+        {
+            var hasSessionAttribute = request.OriginalRequest.SessionAttributes.TryGetValue(SessionAttributes.BoardsSessionAttribute, out var boardsObj);
+            if (hasSessionAttribute)
+                return JsonConvert.DeserializeObject<Board[]>(JsonConvert.SerializeObject(boardsObj));
+
+            var boardsResult = await _mondayDataProvider.GetAllBoards(request.OriginalRequest.AccessToken);
+            return boardsResult?.Data;
+        }
+
+        private async Task<Board> GetCurrentBoardFromRequest(GeneralWebhookFulfillmentRequest request)
+        {
+            var hasSessionAttribute = request.OriginalRequest.SessionAttributes.TryGetValue(SessionAttributes.CurrentBoardSessionAttribute, out var boardObj);
+            if (hasSessionAttribute)
+                return JsonConvert.DeserializeObject<Board>(JsonConvert.SerializeObject(boardObj));
+
+            var boards = await GetBoardsFromRequest(request);
+            return boards?.FirstOrDefault();
+        }
+
+        private string BuildBoardResponse(string template, Board board)
+        {
+            return template.Replace(ResponseVariables.BoardItemCount, (board?.Items?.Length ?? 0).ToString())
+                            .Replace(ResponseVariables.BoardName, board.Name)
+                            .Replace(ResponseVariables.BoardGroupCount, (board.Groups?.Length ?? 0).ToString())
         }
 
 
@@ -188,6 +239,22 @@ namespace MondayManager.Services
                 Data = new ContentFulfillmentWebhookData
                 {
                     Content = "Something went wrong"
+                }
+            };
+        }
+
+        private GeneralFulfillmentResponse Unauthorized()
+        {
+            return new GeneralFulfillmentResponse
+            {
+                Data = new ContentFulfillmentWebhookData
+                {
+                    Content = "You need to link your Monday account before requesting data.",
+                    AccountLinking = new AccountLinkingModel
+                    {
+                        GoogleAccountLinkingPrompt = "To ask about your monday account",
+                        AlexaAccountLinkingPrompt = "In order to ask about your monday account, you need to link your Amazon and Monday accounts. I've sent a card to your Alexa app to get started"
+                    }
                 }
             };
         }

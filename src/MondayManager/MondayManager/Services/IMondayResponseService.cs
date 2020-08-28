@@ -12,6 +12,8 @@ namespace MondayManager.Services
     {
         Task<GeneralFulfillmentResponse> GetBoards(GeneralWebhookFulfillmentRequest request);
         Task<GeneralFulfillmentResponse> GetCurrentBoard(GeneralWebhookFulfillmentRequest request);
+        Task<GeneralFulfillmentResponse> GetPreviousBoard(GeneralWebhookFulfillmentRequest request);
+        Task<GeneralFulfillmentResponse> GetNextBoard(GeneralWebhookFulfillmentRequest request);
         Task<GeneralFulfillmentResponse> GetItems(GeneralWebhookFulfillmentRequest request);
         Task<GeneralFulfillmentResponse> HandleGenericMondayRequest(GeneralWebhookFulfillmentRequest request);
     }
