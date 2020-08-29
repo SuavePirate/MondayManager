@@ -20,13 +20,14 @@ namespace MondayManager.Services
     {
         private readonly IMondayDataProvider _mondayDataProvider;
         private readonly IDataTraversalService _dataTraversalService;
+        private readonly IEnhancedLanguageService _languageService;
 
-        public MondayResponseService(IMondayDataProvider mondayDataProvider, IDataTraversalService dataTraversalService)
+        public MondayResponseService(IMondayDataProvider mondayDataProvider, IDataTraversalService dataTraversalService, IEnhancedLanguageService languageService)
         {
             _mondayDataProvider = mondayDataProvider;
             _dataTraversalService = dataTraversalService;
+            _languageService = languageService;
         }
-
 
         public async Task<GeneralFulfillmentResponse> GetBoards(GeneralWebhookFulfillmentRequest request)
         {
@@ -216,20 +217,63 @@ namespace MondayManager.Services
                 if (string.IsNullOrEmpty(request.OriginalRequest.AccessToken))
                     return Unauthorized();
 
+                var boards = await GetBoardsFromRequest(request);
+                if (boards == null)
+                    return Error();
+
                 var currentBoard = await GetCurrentBoardFromRequest(request);
                 if (currentBoard == null)
                     return Error();
 
-                var itemResult = await _mondayDataProvider.CreateItem(request.OriginalRequest.AccessToken, "test", "test", "Test from voice app");
-                
+                request.OriginalRequest.Slots.TryGetValue("query", out string query);
+                if(string.IsNullOrEmpty(query))
+                    return Error();
+
+
+                // get group and item name
+                var processedLanguage = await ExtractGroupAndItem(query);
+
+                processedLanguage.Slots.TryGetValue("Group", out var groupName);
+                processedLanguage.Slots.TryGetValue("Item", out var itemName);
+                if (string.IsNullOrEmpty(groupName))
+                    return Error("You have to provide a group to add the item to. Try something like \"Add a new item to backlog called do work\"");
+                if (string.IsNullOrEmpty(itemName))
+                    return Error("You have to provide a item name in order to add it. Try something like \"Add a new item to backlog called do work\"");
+
+                // search all groups, prioritize current board
+                // TODO: consider grooming input before search to have a greater chance of a match. Ex: "the backlog" should match "backlog"
+                var matchedGroup = currentBoard.Groups.FirstOrDefault(g => g.Title.ToLower().Contains(groupName.ToLower()));
+                var matchedBoard = currentBoard;
+                if(matchedGroup == null)
+                {
+                    foreach(var board in boards)
+                    {
+                        matchedGroup = board.Groups.FirstOrDefault(g => g.Title.ToLower().Contains(groupName.ToLower()));
+                        if (matchedGroup != null)
+                        {
+                            matchedBoard = board;
+                            break;
+                        }
+                    }
+                }
+                if (matchedGroup == null)
+                    return Error($"I couldn't find any group for {groupName}. Try adding to a different group.");
+
+
+
+
+
+                // create the item given the text
+
+                var itemResult = await _mondayDataProvider.CreateItem(request.OriginalRequest.AccessToken, matchedBoard.Id, matchedGroup.Id, itemName);
+
                 return new GeneralFulfillmentResponse
                 {
                     Data = new ContentFulfillmentWebhookData
                     {
-                        Content = $"Added {itemResult.Data.Name}"
+                        Content = $"Added {itemResult.Data.Name} to {matchedGroup.Title}."
                     }
                 };
-
 
             }
             catch (Exception ex)
@@ -239,11 +283,62 @@ namespace MondayManager.Services
             }
         }
 
+        private async Task<ProcessedLanguage> ExtractGroupAndItem(string query)
+        {
+            var languageModel = new InteractionModel
+            {
+                Intents = new List<Intent>
+                {
+                    new Intent
+                    {
+                        Name = new Dictionary<string, string> {{"voicify", "GroupAndItem" } },
+                        DisplayName = "GroupAndItem",
+                        Utterances = new List<string>
+                        {
+                            "item to {Group} called {Item}",
+                            "item in {Group} called {Item}",
+                            "add an item to {Group} called {Item}",
+                            "add an item in {Group} called {Item}",
+                            "create an item in {Group} called {Item}",
+                            "item to {Group} titled {Item}",
+                            "item in {Group} titled {Item}",
+                            "add an item to {Group} titled {Item}",
+                            "add an item in {Group} titled {Item}",
+                            "create an item in {Group} titled {Item}",
+                            "item to {Group} called {Item}",
+                            "item in {Group} called {Item}",
+                            "add an item to {Group} called {Item}",
+                            "add an item in {Group} called {Item}",
+                            "create an item in {Group} called {Item}",
+
+                            "new item to {Group} called {Item}",
+                            "new item in {Group} called {Item}",
+                            "add a new item to {Group} called {Item}",
+                            "add a new item in {Group} called {Item}",
+                            "create a new item in {Group} called {Item}",
+                            "new item to {Group} titled {Item}",
+                            "new item in {Group} titled {Item}",
+                            "add a new item to {Group} titled {Item}",
+                            "add a new item in {Group} titled {Item}",
+                            "create an item in {Group} titled {Item}",
+                            "new item to {Group} called {Item}",
+                            "new item in {Group} called {Item}",
+                            "add a new item to {Group} called {Item}",
+                            "add a new item in {Group} called {Item}",
+                            "create a new item in {Group} called {Item}",
+                        }
+                    }
+                }
+            };
+
+            var output = await _languageService.Process(query, languageModel);
+            return output?.Data;
+        }
 
 
         private async Task<Board[]> GetBoardsFromRequest(GeneralWebhookFulfillmentRequest request)
         {
-            request.OriginalRequest.SessionAttributes.TryGetValue(SessionAttributes.BoardsSessionAttribute, out var boardsObj);
+            (request.OriginalRequest.SessionAttributes ?? new Dictionary<string, object>()).TryGetValue(SessionAttributes.BoardsSessionAttribute, out var boardsObj);
             if (boardsObj != null)
                 return JsonConvert.DeserializeObject<Board[]>(JsonConvert.SerializeObject(boardsObj));
 
@@ -253,7 +348,7 @@ namespace MondayManager.Services
 
         private async Task<Board> GetCurrentBoardFromRequest(GeneralWebhookFulfillmentRequest request)
         {
-            request.OriginalRequest.SessionAttributes.TryGetValue(SessionAttributes.CurrentBoardSessionAttribute, out var boardObj);
+            (request.OriginalRequest.SessionAttributes ?? new Dictionary<string, object>()).TryGetValue(SessionAttributes.CurrentBoardSessionAttribute, out var boardObj);
             if (boardObj != null)
                 return JsonConvert.DeserializeObject<Board>(JsonConvert.SerializeObject(boardObj));
 
@@ -269,13 +364,13 @@ namespace MondayManager.Services
         }
 
 
-        private GeneralFulfillmentResponse Error()
+        private GeneralFulfillmentResponse Error(string message = "Something went wrong")
         {
             return new GeneralFulfillmentResponse
             {
                 Data = new ContentFulfillmentWebhookData
                 {
-                    Content = "Something went wrong"
+                    Content = message
                 }
             };
         }

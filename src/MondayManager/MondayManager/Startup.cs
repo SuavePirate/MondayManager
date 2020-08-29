@@ -38,6 +38,8 @@ namespace MondayManager
             services.AddScoped<IMondayDataProvider, MondayDataProvider>();
             services.AddScoped<IMondayResponseService, MondayResponseService>();
             services.AddScoped<IDataTraversalService, DataTraversalService>();
+            services.AddScoped<IEnhancedLanguageService, EnhancedLanguageService>();
+            services.AddScoped<IPhraseParserService, PhraseParserService>();
             services.AddScoped((s) => new GraphQLHttpClient("https://api.monday.com/v2", new NewtonsoftJsonSerializer()));
 
         }

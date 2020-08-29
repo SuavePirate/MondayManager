@@ -44,15 +44,16 @@ namespace MondayManager.Providers
 
         public async Task<Result<Item>> CreateItem(string accessToken, string boardId, string groupId, string title)
         {
-            var response = await SendMutation<Item>(accessToken,@"mutation {
+            var query = $@"mutation {{
                 create_item (
-                board_id: 711285418,
-                group_id: ""topics"",
-                item_name: ""test from voiceapp 2""
-                ) { id
+                board_id: {boardId},
+                group_id: ""{groupId}"",
+                item_name: ""{title}""
+                ) {{ id
                     name
-                }
-            }");
+                }}
+            }}";
+            var response = await SendMutation<Item>(accessToken, query);
 
             return new SuccessResult<Item>(response);
         }
