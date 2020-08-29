@@ -186,14 +186,18 @@ namespace MondayManager.Services
                 if (string.IsNullOrEmpty(request.OriginalRequest.AccessToken))
                     return Unauthorized();
 
+                var currentBoard = await GetCurrentBoardFromRequest(request);
+                if (currentBoard == null)
+                    return Error();
+
                 // TODO: item stuff
-                    return new GeneralFulfillmentResponse
+                return new GeneralFulfillmentResponse
+                {
+                    Data = new ContentFulfillmentWebhookData
                     {
-                        Data = new ContentFulfillmentWebhookData
-                        {
-                            Content = $"Not implemented"
-                        }
-                    };
+                        Content = $"Not implemented"
+                    }
+                };
 
 
             }
@@ -204,10 +208,43 @@ namespace MondayManager.Services
             }
         }
 
+
+        public async Task<GeneralFulfillmentResponse> CreateItem(GeneralWebhookFulfillmentRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(request.OriginalRequest.AccessToken))
+                    return Unauthorized();
+
+                var currentBoard = await GetCurrentBoardFromRequest(request);
+                if (currentBoard == null)
+                    return Error();
+
+                var itemResult = await _mondayDataProvider.CreateItem(request.OriginalRequest.AccessToken, "test", "test", "Test from voice app");
+                
+                return new GeneralFulfillmentResponse
+                {
+                    Data = new ContentFulfillmentWebhookData
+                    {
+                        Content = $"Added {itemResult.Data.Name}"
+                    }
+                };
+
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                return Error();
+            }
+        }
+
+
+
         private async Task<Board[]> GetBoardsFromRequest(GeneralWebhookFulfillmentRequest request)
         {
-            var hasSessionAttribute = request.OriginalRequest.SessionAttributes.TryGetValue(SessionAttributes.BoardsSessionAttribute, out var boardsObj);
-            if (hasSessionAttribute)
+            request.OriginalRequest.SessionAttributes.TryGetValue(SessionAttributes.BoardsSessionAttribute, out var boardsObj);
+            if (boardsObj != null)
                 return JsonConvert.DeserializeObject<Board[]>(JsonConvert.SerializeObject(boardsObj));
 
             var boardsResult = await _mondayDataProvider.GetAllBoards(request.OriginalRequest.AccessToken);
@@ -216,8 +253,8 @@ namespace MondayManager.Services
 
         private async Task<Board> GetCurrentBoardFromRequest(GeneralWebhookFulfillmentRequest request)
         {
-            var hasSessionAttribute = request.OriginalRequest.SessionAttributes.TryGetValue(SessionAttributes.CurrentBoardSessionAttribute, out var boardObj);
-            if (hasSessionAttribute)
+            request.OriginalRequest.SessionAttributes.TryGetValue(SessionAttributes.CurrentBoardSessionAttribute, out var boardObj);
+            if (boardObj != null)
                 return JsonConvert.DeserializeObject<Board>(JsonConvert.SerializeObject(boardObj));
 
             var boards = await GetBoardsFromRequest(request);

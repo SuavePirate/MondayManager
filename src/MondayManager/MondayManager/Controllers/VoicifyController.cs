@@ -82,6 +82,12 @@ namespace MondayManager.Controllers
             var result = await _mondayResponseService.GetItems(request);
             return Ok(result);
         }
+        [HttpPost("CreateItem")]
+        public async Task<IActionResult> CreateItem([FromBody]GeneralWebhookFulfillmentRequest request)
+        {
+            var result = await _mondayResponseService.CreateItem(request);
+            return Ok(result);
+        }
 
         [HttpPost("HandleGenericQuery")]
         public async Task<IActionResult> HandleGenericQuery([FromBody]GeneralWebhookFulfillmentRequest request)

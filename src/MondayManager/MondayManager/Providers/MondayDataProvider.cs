@@ -30,6 +30,7 @@ namespace MondayManager.Providers
    	                title
                   }
                   items {
+                    id
                     name,
                     group {
                       id
@@ -39,6 +40,21 @@ namespace MondayManager.Providers
 
 
             return new SuccessResult<Board[]>(boards.Boards);
+        }
+
+        public async Task<Result<Item>> CreateItem(string accessToken, string boardId, string groupId, string title)
+        {
+            var response = await SendMutation<Item>(accessToken,@"mutation {
+                create_item (
+                board_id: 711285418,
+                group_id: ""topics"",
+                item_name: ""test from voiceapp 2""
+                ) { id
+                    name
+                }
+            }");
+
+            return new SuccessResult<Item>(response);
         }
 
         public async Task<Result<string>> MakeRawQueryRequest(string accessToken, string query)
@@ -57,8 +73,17 @@ namespace MondayManager.Providers
 
         private async Task<T> SendQuery<T>(string accessToken, string query)
         {
-            _client.HttpClient.DefaultRequestHeaders.Add("Authorization", accessToken);
+            if (!_client.HttpClient.DefaultRequestHeaders.Contains("Authorization"))
+                _client.HttpClient.DefaultRequestHeaders.Add("Authorization", accessToken);
             var response = await _client.SendQueryAsync<T>(new GraphQL.GraphQLRequest(query));
+            return response.Data;
+        }
+
+        private async Task<T> SendMutation<T>(string accessToken, string query)
+        {
+            if(!_client.HttpClient.DefaultRequestHeaders.Contains("Authorization"))
+                _client.HttpClient.DefaultRequestHeaders.Add("Authorization", accessToken);
+            var response = await _client.SendMutationAsync<T>(new GraphQL.GraphQLRequest(query));
             return response.Data;
         }
     }

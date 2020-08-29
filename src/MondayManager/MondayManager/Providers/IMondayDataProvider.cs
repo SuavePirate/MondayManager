@@ -11,5 +11,6 @@ namespace MondayManager.Providers
     {
         Task<Result<Board[]>> GetAllBoards(string accessToken);
         Task<Result<string>> MakeRawQueryRequest(string accessToken, string query);
+        Task<Result<Item>> CreateItem(string accessToken, string boardId, string groupId, string title);
     }
 }
