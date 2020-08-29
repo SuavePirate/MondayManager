@@ -199,8 +199,6 @@ namespace MondayManager.Services
                         Content = $"Not implemented"
                     }
                 };
-
-
             }
             catch (Exception ex)
             {
@@ -242,7 +240,7 @@ namespace MondayManager.Services
 
                 // search all groups, prioritize current board
                 // TODO: consider grooming input before search to have a greater chance of a match. Ex: "the backlog" should match "backlog"
-                var matchedGroup = currentBoard.Groups.FirstOrDefault(g => g.Title.ToLower().Contains(groupName.ToLower()));
+                var matchedGroup = currentBoard.Groups?.FirstOrDefault(g => g.Title.ToLower().Contains(groupName.ToLower()));
                 var matchedBoard = currentBoard;
                 if(matchedGroup == null)
                 {
@@ -296,9 +294,13 @@ namespace MondayManager.Services
                         Utterances = new List<string>
                         {
                             "item to {Group} called {Item}",
+                            "item to the {Group} called {Item}",
                             "item in {Group} called {Item}",
+                            "item the in {Group} called {Item}",
                             "add an item to {Group} called {Item}",
                             "add an item in {Group} called {Item}",
+                            "add an item to the {Group} called {Item}",
+                            "add an item in the {Group} called {Item}",
                             "create an item in {Group} called {Item}",
                             "item to {Group} titled {Item}",
                             "item in {Group} titled {Item}",
@@ -313,8 +315,12 @@ namespace MondayManager.Services
 
                             "new item to {Group} called {Item}",
                             "new item in {Group} called {Item}",
+                            "new item to the {Group} called {Item}",
+                            "new item in the {Group} called {Item}",
                             "add a new item to {Group} called {Item}",
                             "add a new item in {Group} called {Item}",
+                            "add a new item to the {Group} called {Item}",
+                            "add a new item in the {Group} called {Item}",
                             "create a new item in {Group} called {Item}",
                             "new item to {Group} titled {Item}",
                             "new item in {Group} titled {Item}",
