@@ -78,7 +78,7 @@ namespace MondayManager.Services
                     if (i == utteranceParts.Count - 1)
                     {
                         // ends on slot
-                            slots.Add(slotName, remainingString);
+                        slots.Add(slotName, remainingString);
                         remainingString = string.Empty; // we did it! clear it out
                     }
                     else

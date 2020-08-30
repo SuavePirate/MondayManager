@@ -19,6 +19,7 @@ namespace MondayManager.Services
         Task<GeneralFulfillmentResponse> GetCurrentItem(GeneralWebhookFulfillmentRequest request);
         Task<GeneralFulfillmentResponse> GetPreviousItem(GeneralWebhookFulfillmentRequest request);
         Task<GeneralFulfillmentResponse> GetNextItem(GeneralWebhookFulfillmentRequest request);
+        Task<GeneralFulfillmentResponse> SearchForItem(GeneralWebhookFulfillmentRequest request);
         Task<GeneralFulfillmentResponse> CreateItem(GeneralWebhookFulfillmentRequest request);
         Task<GeneralFulfillmentResponse> HandleGenericMondayRequest(GeneralWebhookFulfillmentRequest request);
     }

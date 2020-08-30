@@ -101,6 +101,12 @@ namespace MondayManager.Controllers
             var result = await _mondayResponseService.GetPreviousItem(request);
             return Ok(result);
         }
+        [HttpPost("SearchForItem")]
+        public async Task<IActionResult> SearchForItem([FromBody]GeneralWebhookFulfillmentRequest request)
+        {
+            var result = await _mondayResponseService.SearchForItem(request);
+            return Ok(result);
+        }
         [HttpPost("CreateItem")]
         public async Task<IActionResult> CreateItem([FromBody]GeneralWebhookFulfillmentRequest request)
         {

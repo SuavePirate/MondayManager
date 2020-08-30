@@ -41,7 +41,24 @@ namespace MondayManager.Providers
 
             return new SuccessResult<Board[]>(boardsResponse.Boards);
         }
+        public async Task<Result<Item[]>> GetItemDetails(string accessToken, string itemId)
+        {
+            var itemsResponse = await SendQuery<ItemsResponse>(accessToken, $@"{{items(ids: {itemId}) {{
+                id
+                name
+                column_values {{
+                  id
+                  title
+                  text
+                  value
+                  type
+                }}
+              }}
+            }}");
 
+
+            return new SuccessResult<Item[]>(itemsResponse.Items);
+        }
         public async Task<Result<Board[]>> GetItemsForBoard(string accessToken, string boardId)
         {
             var boardsResponse = await SendQuery<BoardsResponse>(accessToken, $@"{{boards(ids: {boardId}) {{
