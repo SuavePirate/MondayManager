@@ -12,5 +12,8 @@ namespace MondayManager.Models.Constants
 
         public const string BoardItemCount = "{BOARD_ITEM_COUNT}";
         public const string BoardGroupCount = "{BOARD_GROUP_COUNT}";
+
+        public const string ItemName = "{ITEM_NAME}";
+        public const string ItemValues= "{ITEM_VALUES}";
     }
 }

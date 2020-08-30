@@ -191,14 +191,143 @@ namespace MondayManager.Services
                 if (currentBoard == null)
                     return Error();
 
-                // TODO: item stuff
+                var boardWithItems = await _mondayDataProvider.GetItemsForBoard(request.OriginalRequest.AccessToken, currentBoard.Id);
+                if (boardWithItems?.ResultType != ResultType.Ok)
+                    return Error();
+
+
                 return new GeneralFulfillmentResponse
                 {
                     Data = new ContentFulfillmentWebhookData
                     {
-                        Content = $"Not implemented"
+                        Content = BuildItemsOverviewResponse(request.Response.Content, boardWithItems?.Data.FirstOrDefault()),
+                        AdditionalSessionAttributes = new Dictionary<string, object> { { SessionAttributes.CurrentItemSessionAttribute, boardWithItems.Data.FirstOrDefault().Items?.FirstOrDefault() } }
                     }
                 };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                return Error();
+            }
+        }
+
+        public async Task<GeneralFulfillmentResponse> GetCurrentItem(GeneralWebhookFulfillmentRequest request)
+        {
+            try
+            {
+
+                if (string.IsNullOrEmpty(request.OriginalRequest.AccessToken))
+                    return Unauthorized();
+
+                var currentItem = await GetCurrentItemFromRequest(request);
+                if (currentItem == null)
+                    return Error();
+
+                return new GeneralFulfillmentResponse
+                {
+                    Data = new ContentFulfillmentWebhookData
+                    {
+                        Content = BuildItemsDetailResponse(request.Response.Content, currentItem),
+                        AdditionalSessionAttributes = new Dictionary<string, object>
+                        {
+                            { SessionAttributes.CurrentItemSessionAttribute, currentItem }
+                        }
+                    }
+                };
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                return Error();
+            }
+        }
+        public async Task<GeneralFulfillmentResponse> GetNextItem(GeneralWebhookFulfillmentRequest request)
+        {
+            try
+            {
+
+                if (string.IsNullOrEmpty(request.OriginalRequest.AccessToken))
+                    return Unauthorized();
+                var currentBoard = await GetCurrentBoardFromRequest(request);
+                if (currentBoard == null)
+                    return Error();
+
+                var boardWithItems = await _mondayDataProvider.GetItemsForBoard(request.OriginalRequest.AccessToken, currentBoard.Id);
+                if (boardWithItems?.ResultType != ResultType.Ok)
+                    return Error();
+
+                var items = boardWithItems?.Data?.FirstOrDefault()?.Items ?? new Item[0];
+
+                var currentItem = await GetCurrentItemFromRequest(request);
+                if (currentItem == null)
+                    return Error();
+
+
+                var currentIndex = Array.FindIndex(items, b => b.Id == currentItem.Id);
+                if (currentIndex < items.Length - 1)
+                    currentItem = items[currentIndex + 1];
+
+
+                return new GeneralFulfillmentResponse
+                {
+                    Data = new ContentFulfillmentWebhookData
+                    {
+                        Content = BuildItemsDetailResponse(request.Response.Content, currentItem),
+                        AdditionalSessionAttributes = new Dictionary<string, object>
+                        {
+                            { SessionAttributes.CurrentItemSessionAttribute, currentItem }
+                        }
+                    }
+                };
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                return Error();
+            }
+        }
+        public async Task<GeneralFulfillmentResponse> GetPreviousItem(GeneralWebhookFulfillmentRequest request)
+        {
+            try
+            {
+
+                if (string.IsNullOrEmpty(request.OriginalRequest.AccessToken))
+                    return Unauthorized();
+                var currentBoard = await GetCurrentBoardFromRequest(request);
+                if (currentBoard == null)
+                    return Error();
+
+                var boardWithItems = await _mondayDataProvider.GetItemsForBoard(request.OriginalRequest.AccessToken, currentBoard.Id);
+                if (boardWithItems?.ResultType != ResultType.Ok)
+                    return Error();
+
+                var items = boardWithItems?.Data?.FirstOrDefault()?.Items ?? new Item[0];
+
+                var currentItem = await GetCurrentItemFromRequest(request);
+                if (currentItem == null)
+                    return Error();
+
+
+                var currentIndex = Array.FindIndex(items, b => b.Id == currentItem.Id);
+                if (currentIndex > 0)
+                    currentItem = items[currentIndex - 1];
+
+
+                return new GeneralFulfillmentResponse
+                {
+                    Data = new ContentFulfillmentWebhookData
+                    {
+                        Content = BuildItemsDetailResponse(request.Response.Content, currentItem),
+                        AdditionalSessionAttributes = new Dictionary<string, object>
+                        {
+                            { SessionAttributes.CurrentItemSessionAttribute, currentItem }
+                        }
+                    }
+                };
+
             }
             catch (Exception ex)
             {
@@ -332,6 +461,12 @@ namespace MondayManager.Services
                             "add a new item to {Group} called {Item}",
                             "add a new item in {Group} called {Item}",
                             "create a new item in {Group} called {Item}",
+
+                            "add {Item} to {Group}",
+                            "{Item} to {Group}",
+                            "{Item} to the {Group}",
+                            "add {Item} to {Group} group",
+                            "add {Item} to the {Group}",
                         }
                     }
                 }
@@ -361,6 +496,19 @@ namespace MondayManager.Services
             var boards = await GetBoardsFromRequest(request);
             return boards?.FirstOrDefault();
         }
+        private async Task<Item> GetCurrentItemFromRequest(GeneralWebhookFulfillmentRequest request)
+        {
+            (request.OriginalRequest.SessionAttributes ?? new Dictionary<string, object>()).TryGetValue(SessionAttributes.CurrentItemSessionAttribute, out var itemObj);
+            if (itemObj != null)
+                return JsonConvert.DeserializeObject<Item>(JsonConvert.SerializeObject(itemObj));
+
+            var currentBoard = await GetCurrentBoardFromRequest(request);
+            if (currentBoard == null)
+                return null;
+
+            var boardWithItems = await _mondayDataProvider.GetItemsForBoard(request.OriginalRequest.AccessToken, currentBoard.Id);
+            return boardWithItems.Data?.FirstOrDefault()?.Items?.FirstOrDefault();
+        }
 
         private string BuildBoardResponse(string template, Board board)
         {
@@ -368,7 +516,18 @@ namespace MondayManager.Services
                             .Replace(ResponseVariables.BoardName, board.Name)
                             .Replace(ResponseVariables.BoardGroupCount, (board.Groups?.Length ?? 0).ToString());
         }
-
+        private string BuildItemsOverviewResponse(string template, Board board)
+        {
+            return template.Replace(ResponseVariables.BoardItemCount, (board?.Items?.Length ?? 0).ToString())
+                            .Replace(ResponseVariables.BoardName, board.Name)
+                            .Replace(ResponseVariables.BoardGroupCount, (board.Groups?.Length ?? 0).ToString())
+                            .Replace(ResponseVariables.ItemName, board.Items?.FirstOrDefault()?.Name?.ToString());
+        }
+        private string BuildItemsDetailResponse(string template, Item item)
+        {
+            return template.Replace(ResponseVariables.ItemName, item?.Name)
+                .Replace(ResponseVariables.ItemValues, string.Join(",\n\n ", item?.ColumnValues?.Where(c => !string.IsNullOrEmpty(c.Text))?.Select(c => $"{c.Title} is currently {c.Text}")?.ToArray() ?? new string[0]));
+        }
 
         private GeneralFulfillmentResponse Error(string message = "Something went wrong")
         {

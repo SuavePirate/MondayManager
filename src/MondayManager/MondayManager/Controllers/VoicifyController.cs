@@ -76,10 +76,29 @@ namespace MondayManager.Controllers
             var result = await _mondayResponseService.GetPreviousBoard(request);
             return Ok(result);
         }
+
         [HttpPost("HandleItems")]
         public async Task<IActionResult> GetItemsResponse([FromBody]GeneralWebhookFulfillmentRequest request)
         {
             var result = await _mondayResponseService.GetItems(request);
+            return Ok(result);
+        }
+        [HttpPost("HandleCurrentItem")]
+        public async Task<IActionResult> GetCurrentItem([FromBody]GeneralWebhookFulfillmentRequest request)
+        {
+            var result = await _mondayResponseService.GetCurrentItem(request);
+            return Ok(result);
+        }
+        [HttpPost("HandleNextItem")]
+        public async Task<IActionResult> GetNextItem([FromBody]GeneralWebhookFulfillmentRequest request)
+        {
+            var result = await _mondayResponseService.GetNextItem(request);
+            return Ok(result);
+        }
+        [HttpPost("HandlePreviousItem")]
+        public async Task<IActionResult> GetPreviousItem([FromBody]GeneralWebhookFulfillmentRequest request)
+        {
+            var result = await _mondayResponseService.GetPreviousItem(request);
             return Ok(result);
         }
         [HttpPost("CreateItem")]

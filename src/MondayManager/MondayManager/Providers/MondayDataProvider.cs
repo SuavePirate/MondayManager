@@ -22,7 +22,7 @@ namespace MondayManager.Providers
 
         public async Task<Result<Board[]>> GetAllBoards(string accessToken)
         {
-            var boards = await SendQuery<BoardsResponse>(accessToken, @"{boards {
+            var boardsResponse = await SendQuery<BoardsResponse>(accessToken, @"{boards {
                   id
                   name
                   groups {
@@ -39,7 +39,32 @@ namespace MondayManager.Providers
                 }}");
 
 
-            return new SuccessResult<Board[]>(boards.Boards);
+            return new SuccessResult<Board[]>(boardsResponse.Boards);
+        }
+
+        public async Task<Result<Board[]>> GetItemsForBoard(string accessToken, string boardId)
+        {
+            var boardsResponse = await SendQuery<BoardsResponse>(accessToken, $@"{{boards(ids: {boardId}) {{
+                    id
+	                name,  
+	                groups {{
+	                    id,
+	                    title
+	                }}
+	                items {{
+	                    id
+	                    name,
+	                    column_values {{
+	                        id
+	                        title
+	                        text
+	                        value
+                            type
+	                    }}
+	                }}
+	            }}
+                }}");
+            return new SuccessResult<Board[]>(boardsResponse.Boards);
         }
 
         public async Task<Result<Item>> CreateItem(string accessToken, string boardId, string groupId, string title)
