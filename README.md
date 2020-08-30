@@ -5,15 +5,15 @@ Built originally for the monday.com hackathon - but now a full product you can u
 
 ## Install
 
-Using Google Assistant?
+- Using Google Assistant?
 Add the Google Assistant app to your monday account: https://auth.monday.com/oauth2/authorize?client_id=3553801cbf0f1c899d9afdeccf9db631&response_type=install
 
-Using Alexa?
+- Using Alexa?
 Add the Alexa app to your monday account: https://auth.monday.com/oauth2/authorize?client_id=f3e2110ddd14a7c1d36eb4d048ab15ab&response_type=install
 
 Or go directly to the Action/Skill:
-Google Action: https://assistant.google.com/services/a/uid/000000d2b982bee0
-Alexa: (Currently in certification review)
+- Google Action: https://assistant.google.com/services/a/uid/000000d2b982bee0
+- Alexa: (Currently in certification review)
 
 
 ## Inspiration
